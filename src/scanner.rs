@@ -46,7 +46,14 @@ pub enum TokenKind {
     Var,
     While,
 
+    Error(Error),
+
     EOF,
+}
+
+#[derive(PartialEq, Debug)]
+enum Error {
+    UnexpectedCharacter,
 }
 
 // Token(TokenType type, String lexeme, Object literal, int line) {
@@ -137,7 +144,7 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
                     None => Some(Token::new(text, TokenKind::Slash)),
                 },
                 _ => {
-                    todo!()
+                    Some(Token::new(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
             }
         } else {
@@ -157,6 +164,15 @@ impl<Chars: Iterator<Item = char>> Iterator for Scanner<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_error() {
+        let source = "@".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Error(Error::UnexpectedCharacter));
+    }
+
     #[test]
     fn scan_single_character_tokens() {
         let source = "() {} , . - ;  * /".chars();
@@ -173,6 +189,7 @@ mod tests {
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
         assert!(scanner.next().is_none());
     }
+
     #[test]
     fn scan_two_character_tokens() {
         let source = "!=!".chars();
