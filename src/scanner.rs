@@ -39,6 +39,7 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
                 ',' => Some(self.new_token(text, TokenKind::Comma)),
                 '.' => Some(self.new_token(text, TokenKind::Dot)),
                 '-' => Some(self.new_token(text, TokenKind::Minus)),
+                '+' => Some(self.new_token(text, TokenKind::Plus)),
                 ';' => Some(self.new_token(text, TokenKind::Semicolon)),
                 '*' => Some(self.new_token(text, TokenKind::Star)),
                 '!' => match self.source.next_if_eq(&'=') {
@@ -143,7 +144,7 @@ mod tests {
 
     #[test]
     fn scan_single_character_tokens() {
-        let source = "() {} , . - ;  * /".chars();
+        let source = "() {} , . - + ;  * /".chars();
         let mut scanner = Scanner::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::LeftParen);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::RightParen);
@@ -152,6 +153,7 @@ mod tests {
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Comma);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Dot);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Minus);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Plus);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Semicolon);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Star);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
