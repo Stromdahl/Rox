@@ -1,4 +1,4 @@
-mod scanner;
+mod lexer;
 mod token;
 
 const EX_USAGE: i32 = 64;
@@ -25,8 +25,8 @@ fn run_prompt() {
 
 fn run(source: &String) {
     let chars = source.chars();
-    let scanner = scanner::Scanner::from_iter(chars);
-    for token in scanner {
+    let tokens: Vec<token::Token> = lexer::Lexer::from_iter(chars).collect();
+    for token in tokens {
         println!("{token:?}");
     }
 }

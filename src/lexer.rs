@@ -1,12 +1,12 @@
 use crate::token::{Token, TokenKind, Error, Keyword};
 
-pub struct Scanner<Chars: Iterator<Item = char>> {
+pub struct Lexer<Chars: Iterator<Item = char>> {
     source: std::iter::Peekable<Chars>,
     line: u32,
     text: String,
 }
 
-impl<Chars: Iterator<Item = char>> Scanner<Chars> {
+impl<Chars: Iterator<Item = char>> Lexer<Chars> {
     pub fn from_iter(chars: Chars) -> Self {
         Self {
             source: chars.peekable(),
@@ -151,7 +151,7 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
     }
 }
 
-impl<Chars: Iterator<Item = char>> Iterator for Scanner<Chars> {
+impl<Chars: Iterator<Item = char>> Iterator for Lexer<Chars> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn scan_identifier() {
         let source = "blafs".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::Identifiter);
         assert_eq!(token.lexeme, "blafs");
@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn scan_reserved_words() {
         let source = "or".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::Keyword(Keyword::Or));
         assert_eq!(token.lexeme, "or");
@@ -184,13 +184,13 @@ mod tests {
     #[test]
     fn scan_numeric_literals() {
         let source = "1234".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::Number);
         assert_eq!(token.lexeme, "1234", "Should handle integers");
 
         let source = "12.34".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::Number);
         assert_eq!(token.lexeme, "12.34", "Should handle floats");
@@ -199,13 +199,13 @@ mod tests {
     #[test]
     fn scan_string_literals() {
         let source = "\"Hello, World!\"".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::String);
         assert_eq!(token.lexeme, "Hello, World!");
 
         let source = "\"Hello, \nWorld!\"".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::String);
         assert_eq!(token.lexeme, "Hello, \nWorld!");
@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn scan_error() {
         let source = "@".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::Error(Error::UnexpectedCharacter));
     }
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn scan_single_character_tokens() {
         let source = "() {} , . - + ;  * /".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::LeftParen);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::RightParen);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::LeftBrace);
@@ -241,21 +241,21 @@ mod tests {
     #[test]
     fn scan_two_character_tokens() {
         let source = "!=!".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::BangEqual);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Bang);
 
         let source = "===".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::EqualEqual);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Equal);
 
         let source = "<=<".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::LessEqual);
 
         let source = ">=>".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::GreatherEqual);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Greather);
     }
@@ -263,12 +263,12 @@ mod tests {
     #[test]
     fn scan_comment() {
         let source = "/ //This is a comment".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
         assert!(scanner.next().is_none(), "Comment should be discarded");
 
         let source = "//This is a comment".chars();
-        let mut scanner = Scanner::from_iter(source);
+        let mut scanner = Lexer::from_iter(source);
         assert!(scanner.next().is_none(), "Comment should be discarded");
     }
 }
