@@ -1,14 +1,9 @@
 mod scanner;
-
-use scanner::Scanner;
+mod token;
 
 const EX_USAGE: i32 = 64;
 
 const PREFIX: &str = ">";
-
-struct Rox {
-    had_error: bool,
-}
 
 fn run_file(file_path: &String) {
     println!("->> FILE MODE\n");
@@ -30,7 +25,7 @@ fn run_prompt() {
 
 fn run(source: &String) {
     let chars = source.chars();
-    let scanner = Scanner::from_iter(chars);
+    let scanner = scanner::Scanner::from_iter(chars);
     for token in scanner {
         println!("{token:?}");
     }
