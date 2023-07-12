@@ -54,6 +54,7 @@ pub enum TokenKind {
 #[derive(PartialEq, Debug)]
 enum Error {
     UnexpectedCharacter,
+    UnterminatedString,
 }
 
 // Token(TokenType type, String lexeme, Object literal, int line) {
@@ -86,6 +87,10 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
         Self {
             source: chars.peekable(),
         }
+    }
+
+    fn is_at_end(&mut self) -> bool {
+        self.source.peek().is_none()
     }
 
     fn trim_while<F>(&mut self, f: F) where F:FnOnce(&char) -> bool + Copy {
@@ -143,6 +148,24 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
                     }
                     None => Some(Token::new(text, TokenKind::Slash)),
                 },
+                '"' => {
+                    while let Some(x) = self.source.next_if(|&x| x != '"') {
+                        text.push(x)
+                    }
+
+                    if self.is_at_end() {
+                        return Some(Token::new(text, TokenKind::Error(Error::UnterminatedString)))
+                    }
+
+                    // skip the remaining '"'
+                    self.source.next();
+
+                    // Trim the surrounding quotes.
+                    if text.len() > 0 {
+                        text.remove(0);
+                    }
+                    Some(Token::new(text, TokenKind::String))
+                }
                 _ => {
                     Some(Token::new(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
@@ -164,6 +187,15 @@ impl<Chars: Iterator<Item = char>> Iterator for Scanner<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_string_literals() {
+        let source = "\"Hello, World!\"".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::String);
+        assert_eq!(token.lexeme, "Hello, World!");
+    }
 
     #[test]
     fn scan_error() {
