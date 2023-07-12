@@ -159,7 +159,7 @@ mod tests {
     use super::*;
     #[test]
     fn scan_single_character_tokens() {
-        let source = "() {} , . - ;  *".chars();
+        let source = "() {} , . - ;  * /".chars();
         let mut scanner = Scanner::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::LeftParen);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::RightParen);
@@ -170,6 +170,7 @@ mod tests {
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Minus);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Semicolon);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Star);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
         assert!(scanner.next().is_none());
     }
     #[test]
@@ -195,11 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn scan_two_slash_or_comment() {
-        let source = "/".chars();
-        let mut scanner = Scanner::from_iter(source);
-        assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
-
+    fn scan_comment() {
         let source = "/ //This is a comment".chars();
         let mut scanner = Scanner::from_iter(source);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
@@ -207,6 +204,6 @@ mod tests {
 
         let source = "//This is a comment".chars();
         let mut scanner = Scanner::from_iter(source);
-        assert!(scanner.next().is_none());
+        assert!(scanner.next().is_none(), "Comment should be discarded");
     }
 }
