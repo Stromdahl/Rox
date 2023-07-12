@@ -1,5 +1,4 @@
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub enum TokenKind {
     // Single-character tokens.
@@ -30,7 +29,13 @@ pub enum TokenKind {
     String,
     Number,
 
-    // Keywords
+    Keyword(Keyword),
+
+    Error(Error),
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Keyword {
     And,
     Class,
     Else,
@@ -47,10 +52,6 @@ pub enum TokenKind {
     True,
     Var,
     While,
-
-    Error(Error),
-
-    EOF,
 }
 
 #[derive(PartialEq, Debug)]

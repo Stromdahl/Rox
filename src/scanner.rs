@@ -1,8 +1,9 @@
-use crate::token::{Token, TokenKind, Error};
+use crate::token::{Token, TokenKind, Error, Keyword};
 
 pub struct Scanner<Chars: Iterator<Item = char>> {
     source: std::iter::Peekable<Chars>,
     line: u32,
+    text: String,
 }
 
 impl<Chars: Iterator<Item = char>> Scanner<Chars> {
@@ -10,6 +11,7 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
         Self {
             source: chars.peekable(),
             line: 0,
+            text: String::new(),
         }
     }
 
@@ -111,6 +113,34 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
 
                     Some(self.new_token(text, TokenKind::Number))
                 },
+                'a'..='z' | 'A'..='B' | '_' => {
+                    while let Some(x) = self.source.next_if(|&x| x.is_alphanumeric()) { text.push(x); }
+
+                    let keyword = match text.as_str() {
+                        "and" =>    Some(Keyword::And),
+                        "class" =>  Some(Keyword::Class),
+                        "else" =>   Some(Keyword::Else),
+                        "false" =>  Some(Keyword::False),
+                        "for" =>    Some(Keyword::For),
+                        "fun" =>    Some(Keyword::Fun),
+                        "if" =>     Some(Keyword::If),
+                        "nil" =>    Some(Keyword::Nil),
+                        "or" =>     Some(Keyword::Or),
+                        "print" =>  Some(Keyword::Print),
+                        "return" => Some(Keyword::Return),
+                        "super" =>  Some(Keyword::Super),
+                        "this" =>   Some(Keyword::This),
+                        "true" =>   Some(Keyword::True),
+                        "var" =>    Some(Keyword::Var),
+                        "while" =>  Some(Keyword::While),
+                        _ => None,
+                    };
+                    if let Some(x) = keyword {
+                        Some(self.new_token(text, TokenKind::Keyword(x)))
+                    } else {
+                        Some(self.new_token(text, TokenKind::Identifiter))
+                    }
+                },
                 _ => {
                     Some(self.new_token(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
@@ -132,6 +162,24 @@ impl<Chars: Iterator<Item = char>> Iterator for Scanner<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn scan_identifier() {
+        let source = "blafs".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Identifiter);
+        assert_eq!(token.lexeme, "blafs");
+    }
+
+    #[test]
+    fn scan_reserved_words() {
+        let source = "or".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Keyword(Keyword::Or));
+        assert_eq!(token.lexeme, "or");
+    }
+
 
     #[test]
     fn scan_numeric_literals() {
@@ -187,7 +235,7 @@ mod tests {
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Semicolon);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Star);
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Slash);
-        assert!(scanner.next().is_none());
+        assert!(scanner.next().is_none(), "End of file");
     }
 
     #[test]
