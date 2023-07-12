@@ -69,23 +69,25 @@ pub struct Token {
     kind: TokenKind,
     lexeme: String,
     // literal: String,
-    // line: u32,
+    line: u32,
 }
 
 impl Token {
-    pub fn new(lexeme: String, kind: TokenKind) -> Self {
-        Self { kind, lexeme }
+    pub fn new(lexeme: String, line: u32, kind: TokenKind) -> Self {
+        Self { kind, lexeme, line }
     }
 }
 
 pub struct Scanner<Chars: Iterator<Item = char>> {
     source: std::iter::Peekable<Chars>,
+    line: u32,
 }
 
 impl<Chars: Iterator<Item = char>> Scanner<Chars> {
     pub fn from_iter(chars: Chars) -> Self {
         Self {
             source: chars.peekable(),
+            line: 0,
         }
     }
 
@@ -97,6 +99,10 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
         while self.source.next_if(f).is_some() {}
     }
 
+    fn new_token(&self, text: String, kind: TokenKind) -> Token {
+        Token::new(text, self.line, kind)
+    }
+
     pub fn next_token(&mut self) -> Option<Token> {
         self.trim_while(|x| x.is_whitespace());
         if let Some(x) = self.source.next() {
@@ -104,57 +110,58 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
             text.push(x);
             match x {
                 x if x.is_whitespace() => None,
-                '(' => Some(Token::new(text, TokenKind::LeftParen)),
-                ')' => Some(Token::new(text, TokenKind::RightParen)),
-                '{' => Some(Token::new(text, TokenKind::LeftBrace)),
-                '}' => Some(Token::new(text, TokenKind::RightBrace)),
-                ',' => Some(Token::new(text, TokenKind::Comma)),
-                '.' => Some(Token::new(text, TokenKind::Dot)),
-                '-' => Some(Token::new(text, TokenKind::Minus)),
-                ';' => Some(Token::new(text, TokenKind::Semicolon)),
-                '*' => Some(Token::new(text, TokenKind::Star)),
-                '!' => match self.source.next_if(|x| x.eq(&'=')) {
+                '(' => Some(self.new_token(text, TokenKind::LeftParen)),
+                ')' => Some(self.new_token(text, TokenKind::RightParen)),
+                '{' => Some(self.new_token(text, TokenKind::LeftBrace)),
+                '}' => Some(self.new_token(text, TokenKind::RightBrace)),
+                ',' => Some(self.new_token(text, TokenKind::Comma)),
+                '.' => Some(self.new_token(text, TokenKind::Dot)),
+                '-' => Some(self.new_token(text, TokenKind::Minus)),
+                ';' => Some(self.new_token(text, TokenKind::Semicolon)),
+                '*' => Some(self.new_token(text, TokenKind::Star)),
+                '!' => match self.source.next_if_eq(&'=') {
                     Some(x) => {
                         text.push(x);
-                        Some(Token::new(text, TokenKind::BangEqual))
+                        Some(self.new_token(text, TokenKind::BangEqual))
                     }
-                    None => Some(Token::new(text, TokenKind::Bang)),
+                    None => Some(self.new_token(text, TokenKind::Bang)),
                 },
-                '=' => match self.source.next_if(|x| x.eq(&'=')) {
+                '=' => match self.source.next_if_eq(&'=') {
                     Some(x) => {
                         text.push(x);
-                        Some(Token::new(text, TokenKind::EqualEqual))
+                        Some(self.new_token(text, TokenKind::EqualEqual))
                     }
-                    None => Some(Token::new(text, TokenKind::Equal)),
+                    None => Some(self.new_token(text, TokenKind::Equal)),
                 },
-                '<' => match self.source.next_if(|x| x.eq(&'=')) {
+                '<' => match self.source.next_if_eq(&'=') {
                     Some(x) => {
                         text.push(x);
-                        Some(Token::new(text, TokenKind::LessEqual))
+                        Some(self.new_token(text, TokenKind::LessEqual))
                     }
-                    None => Some(Token::new(text, TokenKind::Less)),
+                    None => Some(self.new_token(text, TokenKind::Less)),
                 },
-                '>' => match self.source.next_if(|x| x.eq(&'=')) {
+                '>' => match self.source.next_if_eq(&'=') {
                     Some(x) => {
                         text.push(x);
-                        Some(Token::new(text, TokenKind::GreatherEqual))
+                        Some(self.new_token(text, TokenKind::GreatherEqual))
                     }
-                    None => Some(Token::new(text, TokenKind::Greather)),
+                    None => Some(self.new_token(text, TokenKind::Greather)),
                 },
-                '/' => match self.source.next_if(|x| x.eq(&'/')) {
+                '/' => match self.source.next_if_eq(&'/') {
                     Some(_) => {
                         self.trim_while(|&x| x != '\n');
                         None
                     }
-                    None => Some(Token::new(text, TokenKind::Slash)),
+                    None => Some(self.new_token(text, TokenKind::Slash)),
                 },
                 '"' => {
                     while let Some(x) = self.source.next_if(|&x| x != '"') {
+                        if x == '\n' { self.line += 1; }
                         text.push(x)
                     }
 
                     if self.is_at_end() {
-                        return Some(Token::new(text, TokenKind::Error(Error::UnterminatedString)))
+                        return Some(self.new_token(text, TokenKind::Error(Error::UnterminatedString)))
                     }
 
                     // skip the remaining '"'
@@ -164,10 +171,10 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
                     if text.len() > 0 {
                         text.remove(0);
                     }
-                    Some(Token::new(text, TokenKind::String))
+                    Some(self.new_token(text, TokenKind::String))
                 }
                 _ => {
-                    Some(Token::new(text, TokenKind::Error(Error::UnexpectedCharacter)))
+                    Some(self.new_token(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
             }
         } else {
@@ -195,6 +202,13 @@ mod tests {
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::String);
         assert_eq!(token.lexeme, "Hello, World!");
+
+        let source = "\"Hello, \nWorld!\"".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::String);
+        assert_eq!(token.lexeme, "Hello, \nWorld!");
+        assert_eq!(token.line, 1);
     }
 
     #[test]
