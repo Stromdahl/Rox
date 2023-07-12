@@ -95,7 +95,22 @@ impl<Chars: Iterator<Item = char>> Scanner<Chars> {
                         text.remove(0);
                     }
                     Some(self.new_token(text, TokenKind::String))
-                }
+                },
+                '0'..='9' => {
+                    while let Some(x) = self.source.next_if(|&x| x.is_numeric()) { text.push(x) }
+
+                    if let Some(x) = self.source.next_if(|&x| x == '.'){
+                        if let Some(&y) = self.source.peek() {
+                            if y.is_numeric() {
+                                text.push(x);
+                            }
+
+                            while let Some(x) = self.source.next_if(|&x| x.is_numeric()) { text.push(x) }
+                        }
+                    }
+
+                    Some(self.new_token(text, TokenKind::Number))
+                },
                 _ => {
                     Some(self.new_token(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
@@ -117,6 +132,21 @@ impl<Chars: Iterator<Item = char>> Iterator for Scanner<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_numeric_literals() {
+        let source = "1234".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Number);
+        assert_eq!(token.lexeme, "1234", "Should handle integers");
+
+        let source = "12.34".chars();
+        let mut scanner = Scanner::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Number);
+        assert_eq!(token.lexeme, "12.34", "Should handle floats");
+    }
 
     #[test]
     fn scan_string_literals() {
