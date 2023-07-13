@@ -3,7 +3,6 @@ use crate::token::{Token, TokenKind, Error, Keyword};
 pub struct Lexer<Chars: Iterator<Item = char>> {
     source: std::iter::Peekable<Chars>,
     line: u32,
-    text: String,
 }
 
 impl<Chars: Iterator<Item = char>> Lexer<Chars> {
@@ -11,7 +10,6 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
         Self {
             source: chars.peekable(),
             line: 0,
-            text: String::new(),
         }
     }
 
@@ -93,7 +91,7 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                     self.source.next();
 
                     // Trim the surrounding quotes.
-                    if text.len() > 0 {
+                    if !text.is_empty() {
                         text.remove(0);
                     }
                     Some(self.new_token(text, TokenKind::String))
@@ -162,6 +160,19 @@ impl<Chars: Iterator<Item = char>> Iterator for Lexer<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_expression() {
+        let source = "print \"Hello, World!\";".chars();
+        let tokens: Vec<Token> = Lexer::from_iter(source).collect();
+        assert_eq!(tokens[0].lexeme, "print");
+        assert_eq!(tokens[0].kind, TokenKind::Keyword(Keyword::Print));
+        assert_eq!(tokens[1].lexeme, "Hello, World!");
+        assert_eq!(tokens[1].kind, TokenKind::String);
+        assert_eq!(tokens[2].lexeme, ";");
+        assert_eq!(tokens[2].kind, TokenKind::Semicolon);
+    }
+
     #[test]
     fn scan_identifier() {
         let source = "blafs".chars();
@@ -180,7 +191,6 @@ mod tests {
         assert_eq!(token.lexeme, "or");
     }
 
-
     #[test]
     fn scan_numeric_literals() {
         let source = "1234".chars();
@@ -197,19 +207,22 @@ mod tests {
     }
 
     #[test]
-    fn scan_string_literals() {
-        let source = "\"Hello, World!\"".chars();
-        let mut scanner = Lexer::from_iter(source);
-        let token = scanner.next().expect("Should be some");
-        assert_eq!(token.kind, TokenKind::String);
-        assert_eq!(token.lexeme, "Hello, World!");
-
+    fn scan_string_literals_ok() {
         let source = "\"Hello, \nWorld!\"".chars();
         let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
         assert_eq!(token.kind, TokenKind::String);
         assert_eq!(token.lexeme, "Hello, \nWorld!");
         assert_eq!(token.line, 1);
+    }
+
+    #[test]
+    fn scan_string_literals_unterminated() {
+        let source = "\"".chars();
+        let mut scanner = Lexer::from_iter(source);
+        let token = scanner.next().expect("Should be some");
+        assert_eq!(token.kind, TokenKind::Error(Error::UnterminatedString));
+        assert_eq!(token.lexeme, "\"");
     }
 
     #[test]
