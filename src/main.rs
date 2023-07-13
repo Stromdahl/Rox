@@ -1,3 +1,4 @@
+
 mod lexer;
 mod token;
 
@@ -23,23 +24,26 @@ fn run_prompt() {
     }
 }
 
-fn run(source: &String) {
+fn print_usage() {
+    println!("Usage: jrox [script]");
+    std::process::exit(EX_USAGE);
+}
+
+fn run(source: &str) {
     let chars = source.chars();
-    let tokens: Vec<token::Token> = lexer::Lexer::from_iter(chars).collect();
+    let tokens: Vec<String> = lexer::Lexer::from_iter(chars).map(|x| x.lexeme).collect();
     for token in tokens {
-        println!("{token:?}");
+        print!("[{}] ", token);
     }
 }
 
 fn main() {
     print!("--> STARTING ROX -- ");
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 2 {
-        println!("Usage: jrox [script]");
-        std::process::exit(EX_USAGE);
-    } else if args.len() == 2 {
-        run_file(&args[1]);
-    } else {
-        run_prompt();
+
+    match args.len() {
+        1 => print_usage(),
+        2 => run_file(&args[1]),
+        _ => run_prompt(),
     }
 }
