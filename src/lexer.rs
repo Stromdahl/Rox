@@ -119,8 +119,12 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                             }
                         }
                     }
+                    let token:Token = match text.parse() {
+                        Ok(literal) => self.new_token(text, TokenKind::Number(literal)),
+                        Err(_) => self.new_token(text, TokenKind::Error(Error::UnterminatedString)),
+                    };
+                    Some(token)
 
-                    Some(self.new_token(text, TokenKind::Number))
                 }
                 'a'..='z' | 'A'..='B' | '_' => {
                     while let Some(x) = self.source.next_if(|&x| x.is_alphanumeric()) {
@@ -175,9 +179,9 @@ mod tests {
     #[test]
     fn scan_expresion_multiply() {
         let mut scanner = Lexer::from_iter("2*2".chars());
-        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number(2_f64));
         assert_eq!(scanner.next().unwrap().kind, TokenKind::Star);
-        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number(2_f64));
     }
 
     #[test]
@@ -215,13 +219,13 @@ mod tests {
         let source = "1234".chars();
         let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
-        assert_eq!(token.kind, TokenKind::Number);
+        assert_eq!(token.kind, TokenKind::Number(1234_f64));
         assert_eq!(token.lexeme, "1234", "Should handle integers");
 
         let source = "12.34".chars();
         let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
-        assert_eq!(token.kind, TokenKind::Number);
+        assert_eq!(token.kind, TokenKind::Number(12.34_f64));
         assert_eq!(token.lexeme, "12.34", "Should handle floats");
     }
 

@@ -2,7 +2,7 @@
 #[derive(PartialEq, Debug)]
 pub enum Expr {
     Unary(Unary, Box<Expr>),
-    Number,
+    Number(f64),
     String(String),
     Binary(Box<Expr>, Binary, Box<Expr>),
     Compare(Box<Expr>, Compare, Box<Expr>),
