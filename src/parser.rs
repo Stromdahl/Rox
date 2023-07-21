@@ -132,16 +132,20 @@ mod parser {
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
         let token = tokens.next().ok_or(Error::ExpectExpression)?;
-        let e = match token.kind {
+        let expr = match token.kind {
             TokenKind::Keyword(Keyword::True) => Expr::True,
             TokenKind::Keyword(Keyword::False) => Expr::False,
             TokenKind::Keyword(Keyword::Nil) => Expr::Nil,
             TokenKind::Number => Expr::Number,
             TokenKind::String => Expr::String,
-            TokenKind::LeftParen => todo!("Handle grouping"),
+            TokenKind::LeftParen => {
+                let expr = parse_expression(tokens)?;
+                let _ = tokens.next_if(|x|x.kind ==  TokenKind::RightParen).ok_or(Error::ExpectRightParen)?;
+                Expr::Grouping(Box::new(expr))
+            }
             _ => todo!(),
         };
-        Ok(e)
+        Ok(expr)
     }
 }
 
@@ -259,6 +263,13 @@ mod tests {
     }
 
     #[test]
+    fn parser_primary_group() {
+        let mut tokens = Lexer::from_iter("( \"grouped\" )".chars()).peekable();
+        let expect = Expr::Grouping(Box::new(Expr::String));
+        assert_eq!(expect, parse_unary(&mut tokens).unwrap());
+    }
+
+    #[test]
     fn parser_primary_literals() {
         let mut tokens = Lexer::from_iter("true false nil 123 \"string\"".chars()).peekable();
         assert_eq!(Expr::True, parse_primary(&mut tokens).unwrap());
@@ -266,6 +277,5 @@ mod tests {
         assert_eq!(Expr::Nil, parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::Number, parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::String, parse_primary(&mut tokens).unwrap());
-        // Todo: add test for grouping
     }
 }

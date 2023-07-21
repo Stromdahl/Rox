@@ -15,6 +15,7 @@ pub enum Expr {
     Binary(Box<Expr>, Binary, Box<Expr>),
     Compare(Box<Expr>, Compare, Box<Expr>),
     Equality(Box<Expr>, Equality, Box<Expr>),
+    Grouping(Box<Expr>),
 }
 
 #[derive(PartialEq, Debug)]
