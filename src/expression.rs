@@ -55,5 +55,5 @@ pub enum Equality {
 pub enum Error {
     ExpectExpression,
     ExpectRightParen,
-    UnexpecedCharacter,
+    UnexpecedCharacter(crate::token::TokenKind),
 }

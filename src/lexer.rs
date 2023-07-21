@@ -119,12 +119,11 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                             }
                         }
                     }
-                    let token:Token = match text.parse() {
+                    let token: Token = match text.parse() {
                         Ok(literal) => self.new_token(text, TokenKind::Number(literal)),
                         Err(_) => self.new_token(text, TokenKind::Error(Error::UnterminatedString)),
                     };
                     Some(token)
-
                 }
                 'a'..='z' | 'A'..='B' | '_' => {
                     while let Some(x) = self.source.next_if(|&x| x.is_alphanumeric()) {
@@ -191,7 +190,10 @@ mod tests {
         assert_eq!(tokens[0].lexeme, "print");
         assert_eq!(tokens[0].kind, TokenKind::Keyword(Keyword::Print));
         assert_eq!(tokens[1].lexeme, "Hello, World!");
-        assert_eq!(tokens[1].kind, TokenKind::String("Hello, World!".to_string()));
+        assert_eq!(
+            tokens[1].kind,
+            TokenKind::String("Hello, World!".to_string())
+        );
         assert_eq!(tokens[2].lexeme, ";");
         assert_eq!(tokens[2].kind, TokenKind::Semicolon);
     }

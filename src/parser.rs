@@ -1,9 +1,17 @@
 #![allow(dead_code, unused_variables)]
+use crate::expression::{Error, Expr};
+use crate::token::Token;
+
+pub fn parse<I: Iterator<Item = Token>>(
+    tokens: &mut std::iter::Peekable<I>,
+) -> Result<Expr, Error> {
+    parser::parse_expression(tokens)
+}
 
 mod parser {
     // TODO: Parsing can be cone much better!!
-    
-    use crate::expression::{Binary, Compare, Error, Expr, Unary, Equality, Literal};
+
+    use crate::expression::{Binary, Compare, Equality, Error, Expr, Literal, Unary};
     use crate::token::{Keyword, Token, TokenKind};
 
     pub fn parse_expression<I: Iterator<Item = Token>>(
@@ -16,7 +24,8 @@ mod parser {
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
         let left = parse_comparison(tokens)?;
-        let operator = tokens.next_if(|x| {x.kind == TokenKind::EqualEqual || x.kind == TokenKind::BangEqual});
+        let operator =
+            tokens.next_if(|x| x.kind == TokenKind::EqualEqual || x.kind == TokenKind::BangEqual);
         let expr = match operator {
             Some(x) => {
                 let right = parse_comparison(tokens)?;
@@ -27,7 +36,7 @@ mod parser {
                     TokenKind::BangEqual => {
                         Expr::Equality(Box::new(left), Equality::NotEqual, Box::new(right))
                     }
-                    _ => return Err(Error::UnexpecedCharacter),
+                    token => return Err(Error::UnexpecedCharacter(token)),
                 }
             }
             None => left,
@@ -62,7 +71,7 @@ mod parser {
                     TokenKind::LessEqual => {
                         Expr::Compare(Box::new(left), Compare::LessEqual, Box::new(right))
                     }
-                    _ => return Err(Error::UnexpecedCharacter),
+                    token => return Err(Error::UnexpecedCharacter(token)),
                 }
             }
             None => left,
@@ -82,7 +91,7 @@ mod parser {
                 match x.kind {
                     TokenKind::Plus => Expr::Binary(Box::new(left), Binary::Add, Box::new(right)),
                     TokenKind::Minus => Expr::Binary(Box::new(left), Binary::Sub, Box::new(right)),
-                    _ => return Err(Error::UnexpecedCharacter),
+                    token => return Err(Error::UnexpecedCharacter(token)),
                 }
             }
             None => left,
@@ -102,7 +111,7 @@ mod parser {
                 match x.kind {
                     TokenKind::Star => Expr::Binary(Box::new(left?), Binary::Mult, Box::new(right)),
                     TokenKind::Slash => Expr::Binary(Box::new(left?), Binary::Div, Box::new(right)),
-                    _ => return Err(Error::UnexpecedCharacter),
+                    token => return Err(Error::UnexpecedCharacter(token)),
                 }
             }
             None => left?,
@@ -132,27 +141,69 @@ mod parser {
     ) -> Result<Expr, Error> {
         let token = tokens.next().ok_or(Error::ExpectExpression)?;
         let expr = match token.kind {
-            TokenKind::Keyword(Keyword::True) =>  Expr::Literal(Literal::True),
+            TokenKind::Keyword(Keyword::True) => Expr::Literal(Literal::True),
             TokenKind::Keyword(Keyword::False) => Expr::Literal(Literal::False),
-            TokenKind::Keyword(Keyword::Nil) =>   Expr::Literal(Literal::Nil),
+            TokenKind::Keyword(Keyword::Nil) => Expr::Literal(Literal::Nil),
             TokenKind::Number(literal) => Expr::Number(literal),
             TokenKind::String(literal) => Expr::String(literal),
             TokenKind::LeftParen => {
                 let expr = parse_expression(tokens)?;
-                let _ = tokens.next_if(|x|x.kind ==  TokenKind::RightParen).ok_or(Error::ExpectRightParen)?;
+                let _ = tokens
+                    .next_if(|x| x.kind == TokenKind::RightParen)
+                    .ok_or(Error::ExpectRightParen)?;
                 Expr::Grouping(Box::new(expr))
             }
-            _ => todo!(),
+            token => return Err(Error::UnexpecedCharacter(token))
         };
         Ok(expr)
+    }
+
+    pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I>) {
+        // Advance
+        while tokens.peek().is_some(){
+            let x = tokens.next_if(|x| {
+                match x.kind {
+                    TokenKind::Semicolon
+                        | TokenKind::Keyword(Keyword::Class) 
+                        | TokenKind::Keyword(Keyword::Fun) 
+                        | TokenKind::Keyword(Keyword::Var) 
+                        | TokenKind::Keyword(Keyword::For) 
+                        | TokenKind::Keyword(Keyword::If) 
+                        | TokenKind::Keyword(Keyword::While) 
+                        | TokenKind::Keyword(Keyword::Print) 
+                        | TokenKind::Keyword(Keyword::Return) 
+                        => false,
+                    _ => true,
+                }
+            });
+            if x.is_none() {
+                let _ = tokens.next_if(|x| x.kind == TokenKind::Semicolon);
+                return;
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Binary, Compare, Expr, Unary, Equality, Literal}; use crate::lexer::Lexer;
+    use crate::expression::{Binary, Compare, Equality, Expr, Literal, Unary};
+    use crate::lexer::Lexer;
 
-    use super::parser::{parse_comparison, parse_factor, parse_primary, parse_term, parse_unary, parse_equality};
+    use super::parser::{
+        parse_comparison, parse_equality, parse_factor, parse_primary, parse_term, parse_unary, syncronize,
+    };
+
+    #[test]
+    fn parser_syncronize() {
+        let mut tokens = Lexer::from_iter("x == 2; 2 == 2".chars()).peekable();
+        syncronize(&mut tokens);
+        let expect = Expr::Equality(
+            Box::new(Expr::Number(2_f64)),
+            Equality::Equal,
+            Box::new(Expr::Number(2_f64)),
+        );
+        assert_eq!(expect, parse_equality(&mut tokens).unwrap());
+    }
 
     #[test]
     fn parser_equality_equal() {
@@ -164,7 +215,6 @@ mod tests {
         );
         assert_eq!(expect, parse_equality(&mut tokens).unwrap());
     }
-
 
     #[test]
     fn parser_compare_greater() {
@@ -206,14 +256,22 @@ mod tests {
     #[test]
     fn parser_term_add() {
         let mut tokens = Lexer::from_iter("2 + 2".chars()).peekable();
-        let expect = Expr::Binary(Box::new(Expr::Number(2_f64)), Binary::Add, Box::new(Expr::Number(2_f64)));
+        let expect = Expr::Binary(
+            Box::new(Expr::Number(2_f64)),
+            Binary::Add,
+            Box::new(Expr::Number(2_f64)),
+        );
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
     #[test]
     fn parser_term_sub() {
         let mut tokens = Lexer::from_iter("2 - 2".chars()).peekable();
-        let expect = Expr::Binary(Box::new(Expr::Number(2_f64)), Binary::Sub, Box::new(Expr::Number(2_f64)));
+        let expect = Expr::Binary(
+            Box::new(Expr::Number(2_f64)),
+            Binary::Sub,
+            Box::new(Expr::Number(2_f64)),
+        );
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
@@ -231,14 +289,22 @@ mod tests {
     #[test]
     fn parser_factor_multiply() {
         let mut tokens = Lexer::from_iter("2 * 2".chars()).peekable();
-        let expect = Expr::Binary(Box::new(Expr::Number(2_f64)), Binary::Mult, Box::new(Expr::Number(2_f64)));
+        let expect = Expr::Binary(
+            Box::new(Expr::Number(2_f64)),
+            Binary::Mult,
+            Box::new(Expr::Number(2_f64)),
+        );
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 
     #[test]
     fn parser_factor_divide() {
         let mut tokens = Lexer::from_iter("2 / 2".chars()).peekable();
-        let expect = Expr::Binary(Box::new(Expr::Number(2_f64)), Binary::Div, Box::new(Expr::Number(2_f64)));
+        let expect = Expr::Binary(
+            Box::new(Expr::Number(2_f64)),
+            Binary::Div,
+            Box::new(Expr::Number(2_f64)),
+        );
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 
@@ -255,7 +321,10 @@ mod tests {
         let mut tokens = Lexer::from_iter("!!false".chars()).peekable();
         let expect = Expr::Unary(
             Unary::Bang,
-            Box::new(Expr::Unary(Unary::Bang, Box::new(Expr::Literal(Literal::False)))),
+            Box::new(Expr::Unary(
+                Unary::Bang,
+                Box::new(Expr::Literal(Literal::False)),
+            )),
         );
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
     }
@@ -270,10 +339,22 @@ mod tests {
     #[test]
     fn parser_primary_literals() {
         let mut tokens = Lexer::from_iter("true false nil 123 \"string\"".chars()).peekable();
-        assert_eq!(Expr::Literal(Literal::True), parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::Literal(Literal::False), parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::Literal(Literal::Nil), parse_primary(&mut tokens).unwrap());
+        assert_eq!(
+            Expr::Literal(Literal::True),
+            parse_primary(&mut tokens).unwrap()
+        );
+        assert_eq!(
+            Expr::Literal(Literal::False),
+            parse_primary(&mut tokens).unwrap()
+        );
+        assert_eq!(
+            Expr::Literal(Literal::Nil),
+            parse_primary(&mut tokens).unwrap()
+        );
         assert_eq!(Expr::Number(123_f64), parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::String("string".to_string()), parse_primary(&mut tokens).unwrap());
+        assert_eq!(
+            Expr::String("string".to_string()),
+            parse_primary(&mut tokens).unwrap()
+        );
     }
 }

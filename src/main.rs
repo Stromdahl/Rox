@@ -32,11 +32,9 @@ fn print_usage() {
 
 fn run(source: &str) {
     let chars = source.chars();
-    let tokens: Vec<String> = lexer::Lexer::from_iter(chars).map(|x| x.lexeme).collect();
-    for token in tokens {
-        print!("[{token}] ");
-    }
-    println!("");
+    let mut tokens = lexer::Lexer::from_iter(chars).peekable();
+    let _expression = crate::parser::parse(&mut tokens);
+    todo!()
 }
 
 fn main() {
