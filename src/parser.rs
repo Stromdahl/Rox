@@ -3,7 +3,7 @@
 mod parser {
     // TODO: Parsing can be cone much better!!
     
-    use crate::expression::{Binary, Compare, Error, Expr, Unary, Equality};
+    use crate::expression::{Binary, Compare, Error, Expr, Unary, Equality, Literal};
     use crate::token::{Keyword, Token, TokenKind};
 
     pub fn parse_expression<I: Iterator<Item = Token>>(
@@ -133,9 +133,9 @@ mod parser {
     ) -> Result<Expr, Error> {
         let token = tokens.next().ok_or(Error::ExpectExpression)?;
         let expr = match token.kind {
-            TokenKind::Keyword(Keyword::True) => Expr::True,
-            TokenKind::Keyword(Keyword::False) => Expr::False,
-            TokenKind::Keyword(Keyword::Nil) => Expr::Nil,
+            TokenKind::Keyword(Keyword::True) =>  Expr::Literal(Literal::True),
+            TokenKind::Keyword(Keyword::False) => Expr::Literal(Literal::False),
+            TokenKind::Keyword(Keyword::Nil) =>   Expr::Literal(Literal::Nil),
             TokenKind::Number => Expr::Number,
             TokenKind::String => Expr::String,
             TokenKind::LeftParen => {
@@ -151,7 +151,7 @@ mod parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Binary, Compare, Expr, Unary, Equality};
+    use crate::expression::{Binary, Compare, Expr, Unary, Equality, Literal};
     use crate::lexer::Lexer;
 
     use super::parser::{parse_comparison, parse_factor, parse_primary, parse_term, parse_unary, parse_equality};
@@ -251,13 +251,13 @@ mod tests {
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
 
         let mut tokens = Lexer::from_iter("!true".chars()).peekable();
-        let expect = Expr::Unary(Unary::Bang, Box::new(Expr::True));
+        let expect = Expr::Unary(Unary::Bang, Box::new(Expr::Literal(Literal::True)));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
 
-        let mut tokens = Lexer::from_iter("!!true".chars()).peekable();
+        let mut tokens = Lexer::from_iter("!!false".chars()).peekable();
         let expect = Expr::Unary(
             Unary::Bang,
-            Box::new(Expr::Unary(Unary::Bang, Box::new(Expr::True))),
+            Box::new(Expr::Unary(Unary::Bang, Box::new(Expr::Literal(Literal::False)))),
         );
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
     }
@@ -272,9 +272,9 @@ mod tests {
     #[test]
     fn parser_primary_literals() {
         let mut tokens = Lexer::from_iter("true false nil 123 \"string\"".chars()).peekable();
-        assert_eq!(Expr::True, parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::False, parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::Nil, parse_primary(&mut tokens).unwrap());
+        assert_eq!(Expr::Literal(Literal::True), parse_primary(&mut tokens).unwrap());
+        assert_eq!(Expr::Literal(Literal::False), parse_primary(&mut tokens).unwrap());
+        assert_eq!(Expr::Literal(Literal::Nil), parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::Number, parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::String, parse_primary(&mut tokens).unwrap());
     }
