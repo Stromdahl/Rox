@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenKind, Error, Keyword};
+use crate::token::{Error, Keyword, Token, TokenKind};
 
 pub struct Lexer<Chars: Iterator<Item = char>> {
     source: std::iter::Peekable<Chars>,
@@ -17,7 +17,10 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
         self.source.peek().is_none()
     }
 
-    fn trim_while<F>(&mut self, f: F) where F:FnOnce(&char) -> bool + Copy {
+    fn trim_while<F>(&mut self, f: F)
+    where
+        F: FnOnce(&char) -> bool + Copy,
+    {
         while self.source.next_if(f).is_some() {}
     }
 
@@ -79,12 +82,16 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                 },
                 '"' => {
                     while let Some(x) = self.source.next_if(|&x| x != '"') {
-                        if x == '\n' { self.line += 1; }
+                        if x == '\n' {
+                            self.line += 1;
+                        }
                         text.push(x)
                     }
 
                     if self.is_at_end() {
-                        return Some(self.new_token(text, TokenKind::Error(Error::UnterminatedString)))
+                        return Some(
+                            self.new_token(text, TokenKind::Error(Error::UnterminatedString)),
+                        );
                     }
 
                     // skip the remaining '"'
@@ -95,42 +102,48 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                         text.remove(0);
                     }
                     Some(self.new_token(text, TokenKind::String))
-                },
+                }
                 '0'..='9' => {
-                    while let Some(x) = self.source.next_if(|&x| x.is_numeric()) { text.push(x) }
+                    while let Some(x) = self.source.next_if(|&x| x.is_numeric()) {
+                        text.push(x)
+                    }
 
-                    if let Some(x) = self.source.next_if(|&x| x == '.'){
+                    if let Some(x) = self.source.next_if(|&x| x == '.') {
                         if let Some(&y) = self.source.peek() {
                             if y.is_numeric() {
                                 text.push(x);
                             }
 
-                            while let Some(x) = self.source.next_if(|&x| x.is_numeric()) { text.push(x) }
+                            while let Some(x) = self.source.next_if(|&x| x.is_numeric()) {
+                                text.push(x)
+                            }
                         }
                     }
 
                     Some(self.new_token(text, TokenKind::Number))
-                },
+                }
                 'a'..='z' | 'A'..='B' | '_' => {
-                    while let Some(x) = self.source.next_if(|&x| x.is_alphanumeric()) { text.push(x); }
+                    while let Some(x) = self.source.next_if(|&x| x.is_alphanumeric()) {
+                        text.push(x);
+                    }
 
                     let keyword = match text.as_str() {
-                        "and" =>    Some(Keyword::And),
-                        "class" =>  Some(Keyword::Class),
-                        "else" =>   Some(Keyword::Else),
-                        "false" =>  Some(Keyword::False),
-                        "for" =>    Some(Keyword::For),
-                        "fun" =>    Some(Keyword::Fun),
-                        "if" =>     Some(Keyword::If),
-                        "nil" =>    Some(Keyword::Nil),
-                        "or" =>     Some(Keyword::Or),
-                        "print" =>  Some(Keyword::Print),
+                        "and" => Some(Keyword::And),
+                        "class" => Some(Keyword::Class),
+                        "else" => Some(Keyword::Else),
+                        "false" => Some(Keyword::False),
+                        "for" => Some(Keyword::For),
+                        "fun" => Some(Keyword::Fun),
+                        "if" => Some(Keyword::If),
+                        "nil" => Some(Keyword::Nil),
+                        "or" => Some(Keyword::Or),
+                        "print" => Some(Keyword::Print),
                         "return" => Some(Keyword::Return),
-                        "super" =>  Some(Keyword::Super),
-                        "this" =>   Some(Keyword::This),
-                        "true" =>   Some(Keyword::True),
-                        "var" =>    Some(Keyword::Var),
-                        "while" =>  Some(Keyword::While),
+                        "super" => Some(Keyword::Super),
+                        "this" => Some(Keyword::This),
+                        "true" => Some(Keyword::True),
+                        "var" => Some(Keyword::Var),
+                        "while" => Some(Keyword::While),
                         _ => None,
                     };
                     if let Some(x) = keyword {
@@ -138,10 +151,8 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                     } else {
                         Some(self.new_token(text, TokenKind::Identifiter))
                     }
-                },
-                _ => {
-                    Some(self.new_token(text, TokenKind::Error(Error::UnexpectedCharacter)))
                 }
+                _ => Some(self.new_token(text, TokenKind::Error(Error::UnexpectedCharacter))),
             }
         } else {
             None
@@ -160,6 +171,14 @@ impl<Chars: Iterator<Item = char>> Iterator for Lexer<Chars> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scan_expresion_multiply() {
+        let mut scanner = Lexer::from_iter("2*2".chars());
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Star);
+        assert_eq!(scanner.next().unwrap().kind, TokenKind::Number);
+    }
 
     #[test]
     fn scan_expression() {

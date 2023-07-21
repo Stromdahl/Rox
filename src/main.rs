@@ -1,5 +1,6 @@
-
+mod expression;
 mod lexer;
+mod parser;
 mod token;
 
 const EX_USAGE: i32 = 64;
@@ -14,12 +15,12 @@ fn run_file(file_path: &String) {
 }
 
 fn run_prompt() {
-    println!("->> REPL MODE\n");
-    let mut source = String::new();
     loop {
-        source.clear();
+        print!("{PREFIX} ");
+        std::io::Write::flush(&mut std::io::stdout()).expect("flush failed!");
+        let mut source = String::new();
         std::io::stdin().read_line(&mut source).unwrap(); //TODO: remove unwrap
-        print!("{PREFIX}");
+        println!(" {source}");
         run(&source);
     }
 }
@@ -33,17 +34,18 @@ fn run(source: &str) {
     let chars = source.chars();
     let tokens: Vec<String> = lexer::Lexer::from_iter(chars).map(|x| x.lexeme).collect();
     for token in tokens {
-        print!("[{}] ", token);
+        print!("[{token}] ");
     }
+    println!("");
 }
 
 fn main() {
-    print!("--> STARTING ROX -- ");
+    println!("->> Welcome to Rox!");
     let args: Vec<String> = std::env::args().collect();
 
-    match args.len() {
-        1 => print_usage(),
-        2 => run_file(&args[1]),
-        _ => run_prompt(),
+    match args.len().cmp(&2) {
+        std::cmp::Ordering::Greater => print_usage(),
+        std::cmp::Ordering::Equal => run_file(&args[1]),
+        std::cmp::Ordering::Less => run_prompt(),
     }
 }

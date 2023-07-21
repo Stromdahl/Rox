@@ -1,4 +1,3 @@
-
 #[derive(Debug, PartialEq)]
 pub enum TokenKind {
     // Single-character tokens.
@@ -67,7 +66,7 @@ pub enum Error {
 //   this.line = line;
 // }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
@@ -80,5 +79,3 @@ impl Token {
         Self { kind, lexeme, line }
     }
 }
-
-
