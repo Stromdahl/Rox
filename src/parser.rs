@@ -1,47 +1,92 @@
 #![allow(dead_code, unused_variables)]
 
 mod parser {
-    use crate::expression::{Error, Expr, Unary, Binary};
+    // TODO: Parsing can be cone much better!!
+    
+    use crate::expression::{Binary, Compare, Error, Expr, Unary, Equality};
     use crate::token::{Keyword, Token, TokenKind};
 
-    pub fn parse_compare<I: Iterator<Item = Token>>(
+    pub fn parse_expression<I: Iterator<Item = Token>>(
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
-        todo!();
-    //     let left = parse_factor(tokens);
-    //     let operator = tokens.next_if(|x| x.kind == TokenKind::Plus || x.kind == TokenKind::Minus);
-
-    //     let expr = match operator {
-    //         Some(x) => {
-    //             let right = parse_unary(tokens)?;
-    //             match x.kind {
-    //                 TokenKind::Plus => Expr::Binary(Box::new(left?), Binary::Add, Box::new(right)),
-    //                 TokenKind::Minus => Expr::Binary(Box::new(left?), Binary::Sub, Box::new(right)),
-    //                 _ => return Err(Error::UnexpecedCharacter),
-    //             }
-    //         }
-    //         None => left?,
-    //     };
-    //     Ok(expr)
+        parse_equality(tokens)
     }
 
+    pub fn parse_equality<I: Iterator<Item = Token>>(
+        tokens: &mut std::iter::Peekable<I>,
+    ) -> Result<Expr, Error> {
+        let left = parse_comparison(tokens)?;
+        let operator = tokens.next_if(|x| {x.kind == TokenKind::EqualEqual || x.kind == TokenKind::BangEqual});
+
+        let expr = match operator {
+            Some(x) => {
+                let right = parse_comparison(tokens)?;
+                match x.kind {
+                    TokenKind::EqualEqual => {
+                        Expr::Equality(Box::new(left), Equality::Equal, Box::new(right))
+                    }
+                    TokenKind::BangEqual => {
+                        Expr::Equality(Box::new(left), Equality::NotEqual, Box::new(right))
+                    }
+                    _ => return Err(Error::UnexpecedCharacter),
+                }
+            }
+            None => left,
+        };
+        Ok(expr)
+    }
+
+    pub fn parse_comparison<I: Iterator<Item = Token>>(
+        tokens: &mut std::iter::Peekable<I>,
+    ) -> Result<Expr, Error> {
+        let left = parse_term(tokens)?;
+        let operator = tokens.next_if(|x| {
+            x.kind == TokenKind::Greather
+                || x.kind == TokenKind::GreatherEqual
+                || x.kind == TokenKind::Less
+                || x.kind == TokenKind::LessEqual
+        });
+
+        let expr = match operator {
+            Some(x) => {
+                let right = parse_term(tokens)?;
+                match x.kind {
+                    TokenKind::Greather => {
+                        Expr::Compare(Box::new(left), Compare::Greater, Box::new(right))
+                    }
+                    TokenKind::Less => {
+                        Expr::Compare(Box::new(left), Compare::Less, Box::new(right))
+                    }
+                    TokenKind::GreatherEqual => {
+                        Expr::Compare(Box::new(left), Compare::GreaterEqual, Box::new(right))
+                    }
+                    TokenKind::LessEqual => {
+                        Expr::Compare(Box::new(left), Compare::LessEqual, Box::new(right))
+                    }
+                    _ => return Err(Error::UnexpecedCharacter),
+                }
+            }
+            None => left,
+        };
+        Ok(expr)
+    }
 
     pub fn parse_term<I: Iterator<Item = Token>>(
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
-        let left = parse_factor(tokens);
+        let left = parse_factor(tokens)?;
         let operator = tokens.next_if(|x| x.kind == TokenKind::Plus || x.kind == TokenKind::Minus);
 
         let expr = match operator {
             Some(x) => {
                 let right = parse_factor(tokens)?;
                 match x.kind {
-                    TokenKind::Plus => Expr::Binary(Box::new(left?), Binary::Add, Box::new(right)),
-                    TokenKind::Minus => Expr::Binary(Box::new(left?), Binary::Sub, Box::new(right)),
+                    TokenKind::Plus => Expr::Binary(Box::new(left), Binary::Add, Box::new(right)),
+                    TokenKind::Minus => Expr::Binary(Box::new(left), Binary::Sub, Box::new(right)),
                     _ => return Err(Error::UnexpecedCharacter),
                 }
             }
-            None => left?,
+            None => left,
         };
         Ok(expr)
     }
@@ -102,16 +147,32 @@ mod parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Expr, Unary, Binary, Compare};
+    use crate::expression::{Binary, Compare, Expr, Unary, Equality};
     use crate::lexer::Lexer;
 
-    use super::parser::{parse_primary, parse_unary, parse_factor, parse_term, parse_compare};
+    use super::parser::{parse_comparison, parse_factor, parse_primary, parse_term, parse_unary, parse_equality};
+
+    #[test]
+    fn parser_equality_equal() {
+        let mut tokens = Lexer::from_iter("2 == 2".chars()).peekable();
+        let expect = Expr::Equality(
+            Box::new(Expr::Number),
+            Equality::Equal,
+            Box::new(Expr::Number),
+        );
+        assert_eq!(expect, parse_equality(&mut tokens).unwrap());
+    }
+
 
     #[test]
     fn parser_compare_greater() {
         let mut tokens = Lexer::from_iter("2 > 2".chars()).peekable();
-        let expect = Expr::Compare(Box::new(Expr::Number), Compare::Greater, Box::new(Expr::Number));
-        assert_eq!(expect, parse_compare(&mut tokens).unwrap());
+        let expect = Expr::Compare(
+            Box::new(Expr::Number),
+            Compare::Greater,
+            Box::new(Expr::Number),
+        );
+        assert_eq!(expect, parse_comparison(&mut tokens).unwrap());
     }
 
     #[test]
@@ -120,9 +181,11 @@ mod tests {
         let expect = Expr::Binary(
             Box::new(Expr::Number),
             Binary::Add,
-            Box::new(
-                  Expr::Binary(Box::new(Expr::Number), Binary::Mult, Box::new(Expr::Number))
-            )
+            Box::new(Expr::Binary(
+                Box::new(Expr::Number),
+                Binary::Mult,
+                Box::new(Expr::Number),
+            )),
         );
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
@@ -133,7 +196,8 @@ mod tests {
         let expect = Expr::Binary(
             Box::new(Expr::Number),
             Binary::Add,
-            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number))));
+            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number))),
+        );
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
@@ -157,7 +221,8 @@ mod tests {
         let expect = Expr::Binary(
             Box::new(Expr::Number),
             Binary::Mult,
-            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number))));
+            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number))),
+        );
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 

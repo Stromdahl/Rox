@@ -14,6 +14,7 @@ pub enum Expr {
     String,
     Binary(Box<Expr>, Binary, Box<Expr>),
     Compare(Box<Expr>, Compare, Box<Expr>),
+    Equality(Box<Expr>, Equality, Box<Expr>),
 }
 
 #[derive(PartialEq, Debug)]
@@ -43,6 +44,11 @@ pub enum Compare {
     LessEqual,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum Equality {
+    Equal,
+    NotEqual,
+}
 
 #[derive(Debug)]
 pub enum Error {
