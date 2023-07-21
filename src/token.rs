@@ -25,7 +25,7 @@ pub enum TokenKind {
 
     // Literals
     Identifiter,
-    String,
+    String(String),
     Number,
 
     Keyword(Keyword),
@@ -70,7 +70,6 @@ pub enum Error {
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
-    // literal: String,
     pub line: u32,
 }
 

@@ -101,7 +101,7 @@ impl<Chars: Iterator<Item = char>> Lexer<Chars> {
                     if !text.is_empty() {
                         text.remove(0);
                     }
-                    Some(self.new_token(text, TokenKind::String))
+                    Some(self.new_token(text.clone(), TokenKind::String(text)))
                 }
                 '0'..='9' => {
                     while let Some(x) = self.source.next_if(|&x| x.is_numeric()) {
@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(tokens[0].lexeme, "print");
         assert_eq!(tokens[0].kind, TokenKind::Keyword(Keyword::Print));
         assert_eq!(tokens[1].lexeme, "Hello, World!");
-        assert_eq!(tokens[1].kind, TokenKind::String);
+        assert_eq!(tokens[1].kind, TokenKind::String("Hello, World!".to_string()));
         assert_eq!(tokens[2].lexeme, ";");
         assert_eq!(tokens[2].kind, TokenKind::Semicolon);
     }
@@ -230,7 +230,7 @@ mod tests {
         let source = "\"Hello, \nWorld!\"".chars();
         let mut scanner = Lexer::from_iter(source);
         let token = scanner.next().expect("Should be some");
-        assert_eq!(token.kind, TokenKind::String);
+        assert_eq!(token.kind, TokenKind::String(token.lexeme.clone()));
         assert_eq!(token.lexeme, "Hello, \nWorld!");
         assert_eq!(token.line, 1);
     }

@@ -17,7 +17,6 @@ mod parser {
     ) -> Result<Expr, Error> {
         let left = parse_comparison(tokens)?;
         let operator = tokens.next_if(|x| {x.kind == TokenKind::EqualEqual || x.kind == TokenKind::BangEqual});
-
         let expr = match operator {
             Some(x) => {
                 let right = parse_comparison(tokens)?;
@@ -137,7 +136,7 @@ mod parser {
             TokenKind::Keyword(Keyword::False) => Expr::Literal(Literal::False),
             TokenKind::Keyword(Keyword::Nil) =>   Expr::Literal(Literal::Nil),
             TokenKind::Number => Expr::Number,
-            TokenKind::String => Expr::String,
+            TokenKind::String(literal) => Expr::String(literal),
             TokenKind::LeftParen => {
                 let expr = parse_expression(tokens)?;
                 let _ = tokens.next_if(|x|x.kind ==  TokenKind::RightParen).ok_or(Error::ExpectRightParen)?;
@@ -265,7 +264,7 @@ mod tests {
     #[test]
     fn parser_primary_group() {
         let mut tokens = Lexer::from_iter("( \"grouped\" )".chars()).peekable();
-        let expect = Expr::Grouping(Box::new(Expr::String));
+        let expect = Expr::Grouping(Box::new(Expr::String("grouped".to_string())));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
     }
 
@@ -276,6 +275,6 @@ mod tests {
         assert_eq!(Expr::Literal(Literal::False), parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::Literal(Literal::Nil), parse_primary(&mut tokens).unwrap());
         assert_eq!(Expr::Number, parse_primary(&mut tokens).unwrap());
-        assert_eq!(Expr::String, parse_primary(&mut tokens).unwrap());
+        assert_eq!(Expr::String("string".to_string()), parse_primary(&mut tokens).unwrap());
     }
 }

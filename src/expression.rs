@@ -3,7 +3,7 @@
 pub enum Expr {
     Unary(Unary, Box<Expr>),
     Number,
-    String,
+    String(String),
     Binary(Box<Expr>, Binary, Box<Expr>),
     Compare(Box<Expr>, Compare, Box<Expr>),
     Equality(Box<Expr>, Equality, Box<Expr>),
