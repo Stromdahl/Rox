@@ -11,9 +11,19 @@ pub enum Expr {
     Literal(Literal),
 }
 
-#[derive(PartialEq, Debug)]
-pub struct Expression {
-    expression: Expr,
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(x) => write!(f, "{x}"),
+            Self::String(x) => write!(f, "{x}"),         
+            Self::Unary(x, r) => write!(f, "({x}{r})"),
+            Self::Binary(l, o, r) => write!(f, "({l} {o} {r})"),
+            Self::Compare(l, o, r) => write!(f, "({l} {o} {r})"),
+            Self::Equality(l, o, r) => write!(f, "({l} {o} {r})"),
+            Self::Grouping(e) => write!(f, "({e})"),
+            Self::Literal(x) => write!(f, "{x}"),         
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -23,10 +33,29 @@ pub enum Literal {
     False,
 }
 
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::False => write!(f, "false"),
+            Self::True => write!(f, "true"),
+            Self::Nil => write!(f, "nil"),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Unary {
     Bang,
     Minus,
+}
+
+impl std::fmt::Display for Unary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Minus => write!(f, "-"),
+            Self::Bang => write!(f, "!"),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -37,6 +66,17 @@ pub enum Binary {
     Sub,
 }
 
+
+impl std::fmt::Display for Binary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Add=> write!(f, "+"),
+            Self::Sub=> write!(f, "-"),
+            Self::Mult=> write!(f, "*"),
+            Self::Div=> write!(f, "/"),
+        }
+    }
+}
 #[derive(PartialEq, Debug)]
 pub enum Compare {
     Greater,
@@ -45,10 +85,30 @@ pub enum Compare {
     LessEqual,
 }
 
+impl std::fmt::Display for Compare {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+    Self::Greater => write!(f, ">"),
+    Self::Less => write!(f, "<"),
+    Self::GreaterEqual => write!(f, ">="),
+    Self::LessEqual => write!(f, "<="),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Equality {
     Equal,
     NotEqual,
+}
+
+impl std::fmt::Display for Equality {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Equal => write!(f, "=="),
+            Self::NotEqual => write!(f, "!="),
+        }
+    }
 }
 
 #[derive(Debug)]
