@@ -1,14 +1,3 @@
-#![allow(dead_code, unused_variables)]
-use crate::expression::{Error, Expr};
-use crate::token::Token;
-
-pub fn parse<I: Iterator<Item = Token>>(
-    tokens: &mut std::iter::Peekable<I>,
-) -> Result<Expr, Error> {
-    parser::parse_expression(tokens)
-}
-
-mod parser {
     // TODO: Parsing can be cone much better!!
 
     use crate::expression::{Binary, Compare, Equality, Error, Expr, Literal, Unary};
@@ -182,14 +171,13 @@ mod parser {
             }
         }
     }
-}
 
 #[cfg(test)]
 mod tests {
     use crate::expression::{Binary, Compare, Equality, Expr, Literal, Unary};
     use crate::lexer::Lexer;
 
-    use super::parser::{
+    use super::{
         parse_comparison, parse_equality, parse_factor, parse_primary, parse_term, parse_unary, syncronize,
     };
 
