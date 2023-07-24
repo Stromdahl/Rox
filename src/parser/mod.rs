@@ -72,15 +72,13 @@ mod tests {
     #[test]
     fn test_parser_expression() {
         let mut tokens = Lexer::from_iter("2 < 3 >= 1 == false".chars()).peekable();
-        let left = Expr::Compare(
-            Box::new(Expr::Compare(
-                Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-                BinaryOperator::Less,
-                Box::new(Expr::Literal(LiteralOperator::Number(3_f64))),
+        let left = Expr::Compare( BinaryExpression::greater_equal(
+            Expr::Compare(BinaryExpression::less(
+               Expr::Literal(LiteralOperator::Number(2_f64)),
+               Expr::Literal(LiteralOperator::Number(3_f64)),
             )),
-                BinaryOperator::GreaterEqual,
-            Box::new(Expr::Literal(LiteralOperator::Number(1_f64))),
-        );
+            Expr::Literal(LiteralOperator::Number(1_f64)),
+        ));
         let right = Expr::Literal(LiteralOperator::False);
         let expect = Expr::Equality(Box::new(left), BinaryOperator::Equal, Box::new(right));
         let result = parse(&mut tokens).unwrap();

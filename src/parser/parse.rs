@@ -46,17 +46,11 @@
 
                 let right = parse_term(tokens)?;
                 left = match operator.kind {
-                    TokenKind::Greather => {
-                        Expr::Compare(Box::new(left), BinaryOperator::Greater, Box::new(right))
-                    }
-                    TokenKind::Less => {
-                        Expr::Compare(Box::new(left), BinaryOperator::Less, Box::new(right))
-                    }
-                    TokenKind::GreatherEqual => {
-                        Expr::Compare(Box::new(left), BinaryOperator::GreaterEqual, Box::new(right))
-                    }
+                    TokenKind::Greather => Expr::Compare(BinaryExpression::greater(left, right)),
+                    TokenKind::Less => Expr::Compare(BinaryExpression::less(left, right)),
+                     TokenKind::GreatherEqual => { Expr::Compare(BinaryExpression::greater_equal( left, right))}
                     TokenKind::LessEqual => {
-                        Expr::Compare(Box::new(left), BinaryOperator::LessEqual, Box::new(right))
+                        Expr::Compare(BinaryExpression::less_equal(left, right))
                     }
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
@@ -158,11 +152,10 @@ mod tests {
     #[test]
     fn test_parser_parse_compare_greater() {
         let mut tokens = Lexer::from_iter("2 > 2".chars()).peekable();
-        let expect = Expr::Compare(
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-            BinaryOperator::Greater,
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-        );
+        let expect = Expr::Compare( BinaryExpression::greater(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_comparison(&mut tokens).unwrap());
     }
 

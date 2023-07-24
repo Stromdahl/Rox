@@ -1,7 +1,7 @@
 #[derive(PartialEq, Debug)]
 pub enum Expr {
     Arithmetic(BinaryExpression),
-    Compare(Box<Expr>, BinaryOperator, Box<Expr>),
+    Compare(BinaryExpression),
     Equality(Box<Expr>, BinaryOperator, Box<Expr>),
     Grouping(Box<Expr>),
     Literal(LiteralOperator),
@@ -13,7 +13,7 @@ impl std::fmt::Display for Expr {
         match self {
             Self::Unary(x, r) => write!(f, "({x}{r})"),
             Self::Arithmetic(expr) => write!(f, "({expr})"),
-            Self::Compare(l, o, r) => write!(f, "({l} {o} {r})"),
+            Self::Compare(expr) => write!(f, "({expr})"),
             Self::Equality(l, o, r) => write!(f, "({l} {o} {r})"),
             Self::Grouping(e) => write!(f, "({e})"),
             Self::Literal(x) => write!(f, "{x}"),
@@ -57,6 +57,26 @@ impl BinaryExpression {
 
     pub fn sub(left: Expr, right: Expr) -> Self {
         Self::new(left, BinaryOperator::Sub, right)
+    }
+
+    pub fn greater_equal(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::GreaterEqual, right)
+    }
+
+    pub fn greater(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::Greater, right)
+    }
+
+    pub fn equal(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::Equal, right)
+    }
+
+    pub fn less_equal(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::LessEqual, right)
+    }
+
+    pub fn less(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::Less, right)
     }
 }
 
