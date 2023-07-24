@@ -36,18 +36,16 @@
     pub fn parse_comparison<I: Iterator<Item = Token>>(
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
-        let left = parse_term(tokens)?;
-        let operator = tokens.next_if(|x| {
+        let mut left = parse_term(tokens)?;
+        while let Some(operator) = tokens.next_if(|x| {
             x.kind == TokenKind::Greather
                 || x.kind == TokenKind::GreatherEqual
                 || x.kind == TokenKind::Less
                 || x.kind == TokenKind::LessEqual
-        });
+        }) {
 
-        let expr = match operator {
-            Some(x) => {
                 let right = parse_term(tokens)?;
-                match x.kind {
+                left = match operator.kind {
                     TokenKind::Greather => {
                         Expr::Compare(Box::new(left), Compare::Greater, Box::new(right))
                     }
@@ -62,50 +60,40 @@
                     }
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
-            }
-            None => left,
-        };
-        Ok(expr)
+            };
+        Ok(left)
     }
 
     pub fn parse_term<I: Iterator<Item = Token>>(
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
-        let left = parse_factor(tokens)?;
-        let operator = tokens.next_if(|x| x.kind == TokenKind::Plus || x.kind == TokenKind::Minus);
+        let mut left = parse_factor(tokens)?;
+        while let Some(operator) = tokens.next_if(|x| x.kind == TokenKind::Plus || x.kind == TokenKind::Minus) {
 
-        let expr = match operator {
-            Some(x) => {
                 let right = parse_factor(tokens)?;
-                match x.kind {
+                left = match operator.kind {
                     TokenKind::Plus => Expr::Binary(Box::new(left), Binary::Add, Box::new(right)),
                     TokenKind::Minus => Expr::Binary(Box::new(left), Binary::Sub, Box::new(right)),
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
-            }
-            None => left,
         };
-        Ok(expr)
+        Ok(left)
     }
 
     pub fn parse_factor<I: Iterator<Item = Token>>(
         tokens: &mut std::iter::Peekable<I>,
     ) -> Result<Expr, Error> {
-        let left = parse_unary(tokens);
-        let operator = tokens.next_if(|x| x.kind == TokenKind::Slash || x.kind == TokenKind::Star);
+        let mut left = parse_unary(tokens)?;
+        while let Some(operator) = tokens.next_if(|x| x.kind == TokenKind::Slash || x.kind == TokenKind::Star) {
 
-        let expr = match operator {
-            Some(x) => {
                 let right = parse_unary(tokens)?;
-                match x.kind {
-                    TokenKind::Star => Expr::Binary(Box::new(left?), Binary::Mult, Box::new(right)),
-                    TokenKind::Slash => Expr::Binary(Box::new(left?), Binary::Div, Box::new(right)),
+                left = match operator.kind {
+                    TokenKind::Star => Expr::Binary(Box::new(left), Binary::Mult, Box::new(right)),
+                    TokenKind::Slash => Expr::Binary(Box::new(left), Binary::Div, Box::new(right)),
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
-            }
-            None => left?,
         };
-        Ok(expr)
+        Ok(left)
     }
 
     pub fn parse_unary<I: Iterator<Item = Token>>(
@@ -182,7 +170,7 @@ mod tests {
     };
 
     #[test]
-    fn parser_syncronize() {
+    fn test_parser_parse_syncronize() {
         let mut tokens = Lexer::from_iter("x == 2; 2 == 2".chars()).peekable();
         syncronize(&mut tokens);
         let expect = Expr::Equality(
@@ -194,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_equality_equal() {
+    fn test_parser_parser_equality_equal() {
         let mut tokens = Lexer::from_iter("2 == 2".chars()).peekable();
         let expect = Expr::Equality(
             Box::new(Expr::Number(2_f64)),
@@ -205,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_compare_greater() {
+    fn test_parser_parse_compare_greater() {
         let mut tokens = Lexer::from_iter("2 > 2".chars()).peekable();
         let expect = Expr::Compare(
             Box::new(Expr::Number(2_f64)),
@@ -216,7 +204,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_presidence() {
+    fn test_parser_parse_presidence() {
         let mut tokens = Lexer::from_iter("2 + 2 * 2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -231,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_factor_add_negative() {
+    fn test_parser_parse_factor_add_negative() {
         let mut tokens = Lexer::from_iter("2 + -2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -242,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_term_add() {
+    fn test_parser_parse_term_add() {
         let mut tokens = Lexer::from_iter("2 + 2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -253,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_term_sub() {
+    fn test_parser_parse_term_sub() {
         let mut tokens = Lexer::from_iter("2 - 2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -264,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_factor_multiply_negative() {
+    fn test_parser_parse_factor_multiply_negative() {
         let mut tokens = Lexer::from_iter("2 * -2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -275,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_factor_multiply() {
+    fn test_parser_parse_factor_multiply() {
         let mut tokens = Lexer::from_iter("2 * 2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -286,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_factor_divide() {
+    fn test_parser_parse_factor_divide() {
         let mut tokens = Lexer::from_iter("2 / 2".chars()).peekable();
         let expect = Expr::Binary(
             Box::new(Expr::Number(2_f64)),
@@ -297,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_unary() {
+    fn test_parser_parse_unary() {
         let mut tokens = Lexer::from_iter("-123".chars()).peekable();
         let expect = Expr::Unary(Unary::Minus, Box::new(Expr::Number(123_f64)));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
@@ -318,14 +306,14 @@ mod tests {
     }
 
     #[test]
-    fn parser_primary_group() {
+    fn test_parser_parse_primary_group() {
         let mut tokens = Lexer::from_iter("( \"grouped\" )".chars()).peekable();
         let expect = Expr::Grouping(Box::new(Expr::String("grouped".to_string())));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
     }
 
     #[test]
-    fn parser_primary_literals() {
+    fn test_parser_parse_primary_literals() {
         let mut tokens = Lexer::from_iter("true false nil 123 \"string\"".chars()).peekable();
         assert_eq!(
             Expr::Literal(Literal::True),

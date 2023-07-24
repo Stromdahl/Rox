@@ -1,4 +1,3 @@
-
 #[derive(PartialEq, Debug)]
 pub enum Expr {
     Unary(Unary, Box<Expr>),
@@ -15,13 +14,13 @@ impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Number(x) => write!(f, "{x}"),
-            Self::String(x) => write!(f, "{x}"),         
+            Self::String(x) => write!(f, "{x}"),
             Self::Unary(x, r) => write!(f, "({x}{r})"),
             Self::Binary(l, o, r) => write!(f, "({l} {o} {r})"),
             Self::Compare(l, o, r) => write!(f, "({l} {o} {r})"),
             Self::Equality(l, o, r) => write!(f, "({l} {o} {r})"),
             Self::Grouping(e) => write!(f, "({e})"),
-            Self::Literal(x) => write!(f, "{x}"),         
+            Self::Literal(x) => write!(f, "{x}"),
         }
     }
 }
@@ -66,14 +65,13 @@ pub enum Binary {
     Sub,
 }
 
-
 impl std::fmt::Display for Binary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Add=> write!(f, "+"),
-            Self::Sub=> write!(f, "-"),
-            Self::Mult=> write!(f, "*"),
-            Self::Div=> write!(f, "/"),
+            Self::Add => write!(f, "+"),
+            Self::Sub => write!(f, "-"),
+            Self::Mult => write!(f, "*"),
+            Self::Div => write!(f, "/"),
         }
     }
 }
@@ -88,10 +86,10 @@ pub enum Compare {
 impl std::fmt::Display for Compare {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-    Self::Greater => write!(f, ">"),
-    Self::Less => write!(f, "<"),
-    Self::GreaterEqual => write!(f, ">="),
-    Self::LessEqual => write!(f, "<="),
+            Self::Greater => write!(f, ">"),
+            Self::Less => write!(f, "<"),
+            Self::GreaterEqual => write!(f, ">="),
+            Self::LessEqual => write!(f, "<="),
         }
     }
 }

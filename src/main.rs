@@ -7,7 +7,7 @@ const EX_USAGE: i32 = 64;
 
 const PREFIX: &str = ">";
 
-fn run_file(file_path: &String) -> Result<(), expression::Error>{
+fn run_file(file_path: &String) -> Result<(), expression::Error> {
     println!("->> FILE MODE\n");
     let source =
         std::fs::read_to_string(file_path).expect("Should have been able to read the file");
@@ -15,7 +15,7 @@ fn run_file(file_path: &String) -> Result<(), expression::Error>{
     Ok(())
 }
 
-fn run_prompt() -> Result<(), expression::Error>{
+fn run_prompt() -> Result<(), expression::Error> {
     loop {
         print!("{PREFIX} ");
         std::io::Write::flush(&mut std::io::stdout()).expect("flush failed!");
@@ -28,18 +28,18 @@ fn run_prompt() -> Result<(), expression::Error>{
     }
 }
 
-fn print_usage() -> Result<(), expression::Error>{
+fn print_usage() -> Result<(), expression::Error> {
     println!("Usage: jrox [script]");
     std::process::exit(EX_USAGE);
 }
 
-fn run(source: &str) -> Result<expression::Expr, expression::Error>{
+fn run(source: &str) -> Result<expression::Expr, expression::Error> {
     let chars = source.chars();
     let mut tokens = lexer::Lexer::from_iter(chars).peekable();
     crate::parser::parse(&mut tokens)
 }
 
-fn main()-> Result<(), expression::Error> {
+fn main() -> Result<(), expression::Error> {
     println!("->> Welcome to Rox!");
     let args: Vec<String> = std::env::args().collect();
 
