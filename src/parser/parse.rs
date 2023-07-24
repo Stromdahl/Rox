@@ -1,6 +1,6 @@
     // TODO: Parsing can be cone much better!!
 
-    use crate::expression::{Binary, Compare, Equality, Error, Expr, Literal, Unary};
+    use crate::expression::{BinaryOperator, Error, Expr, LiteralOperator, UnaryOperator, BinaryExpression};
     use crate::token::{Keyword, Token, TokenKind};
 
     pub fn parse_expression<I: Iterator<Item = Token>>(
@@ -20,10 +20,10 @@
                 let right = parse_comparison(tokens)?;
                 match x.kind {
                     TokenKind::EqualEqual => {
-                        Expr::Equality(Box::new(left), Equality::Equal, Box::new(right))
+                        Expr::Equality(Box::new(left), BinaryOperator::Equal, Box::new(right))
                     }
                     TokenKind::BangEqual => {
-                        Expr::Equality(Box::new(left), Equality::NotEqual, Box::new(right))
+                        Expr::Equality(Box::new(left), BinaryOperator::NotEqual, Box::new(right))
                     }
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
@@ -47,16 +47,16 @@
                 let right = parse_term(tokens)?;
                 left = match operator.kind {
                     TokenKind::Greather => {
-                        Expr::Compare(Box::new(left), Compare::Greater, Box::new(right))
+                        Expr::Compare(Box::new(left), BinaryOperator::Greater, Box::new(right))
                     }
                     TokenKind::Less => {
-                        Expr::Compare(Box::new(left), Compare::Less, Box::new(right))
+                        Expr::Compare(Box::new(left), BinaryOperator::Less, Box::new(right))
                     }
                     TokenKind::GreatherEqual => {
-                        Expr::Compare(Box::new(left), Compare::GreaterEqual, Box::new(right))
+                        Expr::Compare(Box::new(left), BinaryOperator::GreaterEqual, Box::new(right))
                     }
                     TokenKind::LessEqual => {
-                        Expr::Compare(Box::new(left), Compare::LessEqual, Box::new(right))
+                        Expr::Compare(Box::new(left), BinaryOperator::LessEqual, Box::new(right))
                     }
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
@@ -72,8 +72,8 @@
 
                 let right = parse_factor(tokens)?;
                 left = match operator.kind {
-                    TokenKind::Plus => Expr::Binary(Box::new(left), Binary::Add, Box::new(right)),
-                    TokenKind::Minus => Expr::Binary(Box::new(left), Binary::Sub, Box::new(right)),
+                    TokenKind::Plus => Expr::Arithmetic(BinaryExpression::add(left, right)),
+                    TokenKind::Minus => Expr::Arithmetic(BinaryExpression::sub(left, right)),
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
         };
@@ -88,8 +88,8 @@
 
                 let right = parse_unary(tokens)?;
                 left = match operator.kind {
-                    TokenKind::Star => Expr::Binary(Box::new(left), Binary::Mult, Box::new(right)),
-                    TokenKind::Slash => Expr::Binary(Box::new(left), Binary::Div, Box::new(right)),
+                    TokenKind::Star => Expr::Arithmetic(BinaryExpression::mult(left, right)),
+                    TokenKind::Slash => Expr::Arithmetic(BinaryExpression::div(left, right)),
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
         };
@@ -104,8 +104,8 @@
             Some(x) => {
                 let right = parse_unary(tokens)?;
                 match x.kind {
-                    TokenKind::Minus => Ok(Expr::Unary(Unary::Minus, Box::new(right))),
-                    TokenKind::Bang => Ok(Expr::Unary(Unary::Bang, Box::new(right))),
+                    TokenKind::Minus => Ok(Expr::Unary(UnaryOperator::Minus, Box::new(right))),
+                    TokenKind::Bang => Ok(Expr::Unary(UnaryOperator::Bang, Box::new(right))),
                     _ => todo!("add primary"),
                 }
             }
@@ -118,11 +118,11 @@
     ) -> Result<Expr, Error> {
         let token = tokens.next().ok_or(Error::ExpectExpression)?;
         let expr = match token.kind {
-            TokenKind::Keyword(Keyword::True) => Expr::Literal(Literal::True),
-            TokenKind::Keyword(Keyword::False) => Expr::Literal(Literal::False),
-            TokenKind::Keyword(Keyword::Nil) => Expr::Literal(Literal::Nil),
-            TokenKind::Number(literal) => Expr::Number(literal),
-            TokenKind::String(literal) => Expr::String(literal),
+            TokenKind::Keyword(Keyword::True) => Expr::Literal(LiteralOperator::True),
+            TokenKind::Keyword(Keyword::False) => Expr::Literal(LiteralOperator::False),
+            TokenKind::Keyword(Keyword::Nil) => Expr::Literal(LiteralOperator::Nil),
+            TokenKind::Number(literal) => Expr::Literal(LiteralOperator::Number(literal)),
+            TokenKind::String(literal) => Expr::Literal(LiteralOperator::String(literal)),
             TokenKind::LeftParen => {
                 let expr = parse_expression(tokens)?;
                 let _ = tokens
@@ -135,59 +135,22 @@
         Ok(expr)
     }
 
-    pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I>) {
-        // Advance
-        while tokens.peek().is_some(){
-            let x = tokens.next_if(|x| {
-                match x.kind {
-                    TokenKind::Semicolon
-                        | TokenKind::Keyword(Keyword::Class) 
-                        | TokenKind::Keyword(Keyword::Fun) 
-                        | TokenKind::Keyword(Keyword::Var) 
-                        | TokenKind::Keyword(Keyword::For) 
-                        | TokenKind::Keyword(Keyword::If) 
-                        | TokenKind::Keyword(Keyword::While) 
-                        | TokenKind::Keyword(Keyword::Print) 
-                        | TokenKind::Keyword(Keyword::Return) 
-                        => false,
-                    _ => true,
-                }
-            });
-            if x.is_none() {
-                let _ = tokens.next_if(|x| x.kind == TokenKind::Semicolon);
-                return;
-            }
-        }
-    }
-
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Binary, Compare, Equality, Expr, Literal, Unary};
+    use crate::expression::{BinaryOperator, Expr, LiteralOperator, UnaryOperator, BinaryExpression};
     use crate::lexer::Lexer;
 
     use super::{
-        parse_comparison, parse_equality, parse_factor, parse_primary, parse_term, parse_unary, syncronize,
+        parse_comparison, parse_equality, parse_factor, parse_primary, parse_term, parse_unary,
     };
-
-    #[test]
-    fn test_parser_parse_syncronize() {
-        let mut tokens = Lexer::from_iter("x == 2; 2 == 2".chars()).peekable();
-        syncronize(&mut tokens);
-        let expect = Expr::Equality(
-            Box::new(Expr::Number(2_f64)),
-            Equality::Equal,
-            Box::new(Expr::Number(2_f64)),
-        );
-        assert_eq!(expect, parse_equality(&mut tokens).unwrap());
-    }
 
     #[test]
     fn test_parser_parser_equality_equal() {
         let mut tokens = Lexer::from_iter("2 == 2".chars()).peekable();
         let expect = Expr::Equality(
-            Box::new(Expr::Number(2_f64)),
-            Equality::Equal,
-            Box::new(Expr::Number(2_f64)),
+            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
+            BinaryOperator::Equal,
+            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
         );
         assert_eq!(expect, parse_equality(&mut tokens).unwrap());
     }
@@ -196,9 +159,9 @@ mod tests {
     fn test_parser_parse_compare_greater() {
         let mut tokens = Lexer::from_iter("2 > 2".chars()).peekable();
         let expect = Expr::Compare(
-            Box::new(Expr::Number(2_f64)),
-            Compare::Greater,
-            Box::new(Expr::Number(2_f64)),
+            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
+            BinaryOperator::Greater,
+            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
         );
         assert_eq!(expect, parse_comparison(&mut tokens).unwrap());
     }
@@ -206,100 +169,92 @@ mod tests {
     #[test]
     fn test_parser_parse_presidence() {
         let mut tokens = Lexer::from_iter("2 + 2 * 2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Add,
-            Box::new(Expr::Binary(
-                Box::new(Expr::Number(2_f64)),
-                Binary::Mult,
-                Box::new(Expr::Number(2_f64)),
+        let expect = Expr::Arithmetic( BinaryExpression::add(
+                Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Arithmetic(BinaryExpression::mult(
+                Expr::Literal(LiteralOperator::Number(2_f64)),
+                Expr::Literal(LiteralOperator::Number(2_f64)),
             )),
-        );
+        ));
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_factor_add_negative() {
         let mut tokens = Lexer::from_iter("2 + -2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Add,
-            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number(2_f64)))),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::add(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Unary(UnaryOperator::Minus, Box::new(Expr::Literal(LiteralOperator::Number(2_f64)))),
+        ));
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_term_add() {
         let mut tokens = Lexer::from_iter("2 + 2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Add,
-            Box::new(Expr::Number(2_f64)),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::add(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_term_sub() {
         let mut tokens = Lexer::from_iter("2 - 2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Sub,
-            Box::new(Expr::Number(2_f64)),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::sub(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_term(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_factor_multiply_negative() {
         let mut tokens = Lexer::from_iter("2 * -2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Mult,
-            Box::new(Expr::Unary(Unary::Minus, Box::new(Expr::Number(2_f64)))),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::mult(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Unary(UnaryOperator::Minus, Box::new(Expr::Literal(LiteralOperator::Number(2_f64)))),
+        ));
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_factor_multiply() {
         let mut tokens = Lexer::from_iter("2 * 2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Mult,
-            Box::new(Expr::Number(2_f64)),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::mult(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_factor_divide() {
         let mut tokens = Lexer::from_iter("2 / 2".chars()).peekable();
-        let expect = Expr::Binary(
-            Box::new(Expr::Number(2_f64)),
-            Binary::Div,
-            Box::new(Expr::Number(2_f64)),
-        );
+        let expect = Expr::Arithmetic( BinaryExpression::div(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_factor(&mut tokens).unwrap());
     }
 
     #[test]
     fn test_parser_parse_unary() {
         let mut tokens = Lexer::from_iter("-123".chars()).peekable();
-        let expect = Expr::Unary(Unary::Minus, Box::new(Expr::Number(123_f64)));
+        let expect = Expr::Unary(UnaryOperator::Minus, Box::new(Expr::Literal(LiteralOperator::Number(123_f64))));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
 
         let mut tokens = Lexer::from_iter("!true".chars()).peekable();
-        let expect = Expr::Unary(Unary::Bang, Box::new(Expr::Literal(Literal::True)));
+        let expect = Expr::Unary(UnaryOperator::Bang, Box::new(Expr::Literal(LiteralOperator::True)));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
 
         let mut tokens = Lexer::from_iter("!!false".chars()).peekable();
         let expect = Expr::Unary(
-            Unary::Bang,
+            UnaryOperator::Bang,
             Box::new(Expr::Unary(
-                Unary::Bang,
-                Box::new(Expr::Literal(Literal::False)),
+                UnaryOperator::Bang,
+                Box::new(Expr::Literal(LiteralOperator::False)),
             )),
         );
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
@@ -308,7 +263,7 @@ mod tests {
     #[test]
     fn test_parser_parse_primary_group() {
         let mut tokens = Lexer::from_iter("( \"grouped\" )".chars()).peekable();
-        let expect = Expr::Grouping(Box::new(Expr::String("grouped".to_string())));
+        let expect = Expr::Grouping(Box::new(Expr::Literal(LiteralOperator::String("grouped".to_string()))));
         assert_eq!(expect, parse_unary(&mut tokens).unwrap());
     }
 
@@ -316,20 +271,20 @@ mod tests {
     fn test_parser_parse_primary_literals() {
         let mut tokens = Lexer::from_iter("true false nil 123 \"string\"".chars()).peekable();
         assert_eq!(
-            Expr::Literal(Literal::True),
+            Expr::Literal(LiteralOperator::True),
             parse_primary(&mut tokens).unwrap()
         );
         assert_eq!(
-            Expr::Literal(Literal::False),
+            Expr::Literal(LiteralOperator::False),
             parse_primary(&mut tokens).unwrap()
         );
         assert_eq!(
-            Expr::Literal(Literal::Nil),
+            Expr::Literal(LiteralOperator::Nil),
             parse_primary(&mut tokens).unwrap()
         );
-        assert_eq!(Expr::Number(123_f64), parse_primary(&mut tokens).unwrap());
+        assert_eq!(Expr::Literal(LiteralOperator::Number(123_f64)), parse_primary(&mut tokens).unwrap());
         assert_eq!(
-            Expr::String("string".to_string()),
+            Expr::Literal(LiteralOperator::String("string".to_string())),
             parse_primary(&mut tokens).unwrap()
         );
     }
