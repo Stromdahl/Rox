@@ -38,7 +38,7 @@ pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Expr, LiteralOperator, BinaryExpression};
+    use crate::expression::{Expr, BinaryExpression, LiteralExpression};
     use crate::lexer::Lexer;
 
     use super::{parse, syncronize};
@@ -47,24 +47,23 @@ mod tests {
     fn test_parser_expression_presidence_add_mult() {
         let mut tokens = Lexer::from_iter("2 + 2 * 2".chars()).peekable();
         let expect = Expr::Arithmetic(BinaryExpression::add(
-            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralExpression::number(2_f64)),
             Expr::Arithmetic(BinaryExpression::mult(
-                Expr::Literal(LiteralOperator::Number(2_f64)),
-                Expr::Literal(LiteralOperator::Number(2_f64)),
+                Expr::Literal(LiteralExpression::number(2_f64)),
+                Expr::Literal(LiteralExpression::number(2_f64)),
             )),
         ));
         assert_eq!(expect, parse(&mut tokens).unwrap());
     }
 
-    #[test]
     fn test_parser_expression_presidence_mult_add() {
         let mut tokens = Lexer::from_iter("2 * 2 + 2".chars()).peekable();
         let expect = Expr::Arithmetic(BinaryExpression::add(
             Expr::Arithmetic(BinaryExpression::mult(
-                Expr::Literal(LiteralOperator::Number(2_f64)),
-                Expr::Literal(LiteralOperator::Number(2_f64)),
+                Expr::Literal(LiteralExpression::number(2_f64)),
+                Expr::Literal(LiteralExpression::number(2_f64)),
             )),
-            Expr::Literal(LiteralOperator::Number(2_f64))
+            Expr::Literal(LiteralExpression::number(2_f64))
         ));
         assert_eq!(expect, parse(&mut tokens).unwrap());
     }
@@ -74,12 +73,12 @@ mod tests {
         let mut tokens = Lexer::from_iter("2 < 3 >= 1 == false".chars()).peekable();
         let left = Expr::Compare( BinaryExpression::greater_equal(
             Expr::Compare(BinaryExpression::less(
-               Expr::Literal(LiteralOperator::Number(2_f64)),
-               Expr::Literal(LiteralOperator::Number(3_f64)),
+               Expr::Literal(LiteralExpression::number(2_f64)),
+               Expr::Literal(LiteralExpression::number(3_f64)),
             )),
-            Expr::Literal(LiteralOperator::Number(1_f64)),
+            Expr::Literal(LiteralExpression::number(1_f64)),
         ));
-        let right = Expr::Literal(LiteralOperator::False);
+        let right = Expr::Literal(LiteralExpression::boolean(false));
         let expect = Expr::Equality(BinaryExpression::equal(left, right));
         let result = parse(&mut tokens).unwrap();
         assert_eq!(expect, result);
@@ -90,8 +89,8 @@ mod tests {
         let mut tokens = Lexer::from_iter("x == 2; 2 == 2".chars()).peekable();
         syncronize(&mut tokens);
         let expect = Expr::Equality( BinaryExpression::equal(
-            Expr::Literal(LiteralOperator::Number(2_f64)),
-            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralExpression::number(2_f64)),
+            Expr::Literal(LiteralExpression::number(2_f64)),
         ));
         assert_eq!(expect, parse(&mut tokens).unwrap());
     }
