@@ -2,7 +2,7 @@
 pub enum Expr {
     Arithmetic(BinaryExpression),
     Compare(BinaryExpression),
-    Equality(Box<Expr>, BinaryOperator, Box<Expr>),
+    Equality(BinaryExpression),
     Grouping(Box<Expr>),
     Literal(LiteralOperator),
     Unary(UnaryOperator, Box<Expr>),
@@ -14,7 +14,7 @@ impl std::fmt::Display for Expr {
             Self::Unary(x, r) => write!(f, "({x}{r})"),
             Self::Arithmetic(expr) => write!(f, "({expr})"),
             Self::Compare(expr) => write!(f, "({expr})"),
-            Self::Equality(l, o, r) => write!(f, "({l} {o} {r})"),
+            Self::Equality(expr) => write!(f, "({expr})"),
             Self::Grouping(e) => write!(f, "({e})"),
             Self::Literal(x) => write!(f, "{x}"),
         }
@@ -77,6 +77,10 @@ impl BinaryExpression {
 
     pub fn less(left: Expr, right: Expr) -> Self {
         Self::new(left, BinaryOperator::Less, right)
+    }
+
+    pub fn not_equal(left: Expr, right: Expr) -> Self {
+        Self::new(left, BinaryOperator::NotEqual, right)
     }
 }
 

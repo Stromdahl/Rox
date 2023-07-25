@@ -20,10 +20,10 @@
                 let right = parse_comparison(tokens)?;
                 match x.kind {
                     TokenKind::EqualEqual => {
-                        Expr::Equality(Box::new(left), BinaryOperator::Equal, Box::new(right))
+                        Expr::Equality(BinaryExpression::equal(left, right))
                     }
                     TokenKind::BangEqual => {
-                        Expr::Equality(Box::new(left), BinaryOperator::NotEqual, Box::new(right))
+                        Expr::Equality(BinaryExpression::not_equal(left, right))
                     }
                     token => return Err(Error::UnexpecedCharacter(token)),
                 }
@@ -131,7 +131,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{BinaryOperator, Expr, LiteralOperator, UnaryOperator, BinaryExpression};
+    use crate::expression::{Expr, LiteralOperator, UnaryOperator, BinaryExpression};
     use crate::lexer::Lexer;
 
     use super::{
@@ -141,11 +141,10 @@ mod tests {
     #[test]
     fn test_parser_parser_equality_equal() {
         let mut tokens = Lexer::from_iter("2 == 2".chars()).peekable();
-        let expect = Expr::Equality(
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-            BinaryOperator::Equal,
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-        );
+        let expect = Expr::Equality(BinaryExpression::equal(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse_equality(&mut tokens).unwrap());
     }
 

@@ -38,7 +38,7 @@ pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{BinaryOperator, Expr, LiteralOperator, BinaryExpression};
+    use crate::expression::{Expr, LiteralOperator, BinaryExpression};
     use crate::lexer::Lexer;
 
     use super::{parse, syncronize};
@@ -80,7 +80,7 @@ mod tests {
             Expr::Literal(LiteralOperator::Number(1_f64)),
         ));
         let right = Expr::Literal(LiteralOperator::False);
-        let expect = Expr::Equality(Box::new(left), BinaryOperator::Equal, Box::new(right));
+        let expect = Expr::Equality(BinaryExpression::equal(left, right));
         let result = parse(&mut tokens).unwrap();
         assert_eq!(expect, result);
     }
@@ -89,11 +89,10 @@ mod tests {
     fn test_parser_parse_syncronize() {
         let mut tokens = Lexer::from_iter("x == 2; 2 == 2".chars()).peekable();
         syncronize(&mut tokens);
-        let expect = Expr::Equality(
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-            BinaryOperator::Equal,
-            Box::new(Expr::Literal(LiteralOperator::Number(2_f64))),
-        );
+        let expect = Expr::Equality( BinaryExpression::equal(
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+            Expr::Literal(LiteralOperator::Number(2_f64)),
+        ));
         assert_eq!(expect, parse(&mut tokens).unwrap());
     }
 
