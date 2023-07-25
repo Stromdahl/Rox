@@ -14,8 +14,7 @@ pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I
     // Advance
     while tokens.peek().is_some(){
         let x = tokens.next_if(|x| {
-            match x.kind {
-                TokenKind::Semicolon
+            !matches!(x.kind, TokenKind::Semicolon
                     | TokenKind::Keyword(Keyword::Class) 
                     | TokenKind::Keyword(Keyword::Fun) 
                     | TokenKind::Keyword(Keyword::Var) 
@@ -24,9 +23,7 @@ pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I
                     | TokenKind::Keyword(Keyword::While) 
                     | TokenKind::Keyword(Keyword::Print) 
                     | TokenKind::Keyword(Keyword::Return) 
-                    => false,
-                _ => true,
-            }
+            )
         });
         if x.is_none() {
             let _ = tokens.next_if(|x| x.kind == TokenKind::Semicolon);
@@ -56,6 +53,7 @@ mod tests {
         assert_eq!(expect, parse(&mut tokens).unwrap());
     }
 
+    #[test]
     fn test_parser_expression_presidence_mult_add() {
         let mut tokens = Lexer::from_iter("2 * 2 + 2".chars()).peekable();
         let expect = Expr::Arithmetic(BinaryExpression::add(
