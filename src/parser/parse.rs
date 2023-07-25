@@ -131,7 +131,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::expression::{Expr, UnaryOperator, BinaryExpression, LiteralExpression, UnaryExpression};
+    use crate::expression::{Expr, BinaryExpression, LiteralExpression, UnaryExpression};
     use crate::lexer::Lexer;
 
     use super::{
