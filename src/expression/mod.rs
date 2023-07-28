@@ -3,11 +3,11 @@ mod binary;
 mod literal;
 mod unary;
 
-pub use self::literal::LiteralExpression;
-pub use self::unary::UnaryExpression;
-pub use self::binary::BinaryExpression;
+pub use self::literal::{LiteralExpression, LiteralOperator};
+pub use self::unary::{UnaryExpression, UnaryOperator};
+pub use self::binary::{BinaryExpression, BinaryOperator};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expr {
     Arithmetic(binary::BinaryExpression),
     Compare(binary::BinaryExpression),

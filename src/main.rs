@@ -2,6 +2,7 @@ mod expression;
 mod lexer;
 mod parser;
 mod token;
+mod interpreter;
 
 const EX_USAGE: i32 = 64;
 

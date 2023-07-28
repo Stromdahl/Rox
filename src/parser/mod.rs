@@ -32,7 +32,6 @@ pub fn syncronize<I: Iterator<Item = Token>>( tokens: &mut std::iter::Peekable<I
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::expression::{Expr, BinaryExpression, LiteralExpression};

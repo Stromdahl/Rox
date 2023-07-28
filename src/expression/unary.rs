@@ -1,6 +1,6 @@
 use super::Expr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct UnaryExpression {
     operator :UnaryOperator,
     right: Box<Expr>
@@ -25,9 +25,17 @@ impl UnaryExpression {
         Self::new(UnaryOperator::Minus, right)
     }
 
+
+    pub fn right(&self) -> &Expr {
+        self.right.as_ref()
+    }
+
+    pub fn operator(&self) -> &UnaryOperator {
+        &self.operator
+    }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum UnaryOperator {
     Bang,
     Minus,

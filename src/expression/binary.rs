@@ -1,6 +1,6 @@
 use super::Expr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BinaryExpression {
     left: Box<Expr>,
     operator :BinaryOperator,
@@ -61,10 +61,22 @@ impl BinaryExpression {
     pub fn not_equal(left: Expr, right: Expr) -> Self {
         Self::new(left, BinaryOperator::NotEqual, right)
     }
+
+    pub fn left(&self) -> &Expr {
+        self.left.as_ref()
+    }
+
+    pub fn operator(&self) -> BinaryOperator {
+        self.operator
+    }
+
+    pub fn right(&self) -> &Expr {
+        self.right.as_ref()
+    }
 }
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum BinaryOperator {
     Mult,
     Div,
