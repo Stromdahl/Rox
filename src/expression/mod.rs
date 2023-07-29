@@ -17,6 +17,16 @@ pub enum Expr {
     Unary(unary::UnaryExpression),
 }
 
+impl Expr {
+    pub fn as_literal(&self) -> Option<&literal::LiteralExpression> {
+        if let Self::Literal(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

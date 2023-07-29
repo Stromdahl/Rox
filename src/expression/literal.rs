@@ -41,6 +41,16 @@ pub enum LiteralOperator {
     String(String),
 }
 
+impl LiteralOperator {
+    pub fn as_number(&self) -> Option<&f64> {
+        if let Self::Number(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 impl std::fmt::Display for LiteralOperator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
