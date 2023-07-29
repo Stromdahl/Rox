@@ -28,8 +28,8 @@ fn unary(expr: UnaryExpression) -> Result<Expr, RuntimeError> {
     let literal = match expr.operator() {
         crate::expression::UnaryOperator::Bang => LiteralExpression::boolean(!evaluate_boolean_literal(&right)),
         crate::expression::UnaryOperator::Minus => {
-            let number = expect_numeric_literal(&right);
-            LiteralExpression::number(-number.unwrap()) // Todo: Fix unwrap
+            let number = expect_numeric_literal(&right)?;
+            LiteralExpression::number(-number)
         },
     };
     Ok(Expr::Literal(literal))
